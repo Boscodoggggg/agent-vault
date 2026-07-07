@@ -50,7 +50,7 @@ export function inferRole(record: Record<string, unknown>): AgentRole | undefine
   const type = typeof record.type === 'string' ? record.type.toLowerCase() : '';
   if (type.includes('user')) return 'user';
   if (type.includes('assistant') || type.includes('agent')) return 'assistant';
-  if (type.includes('tool') || type.includes('function')) return 'tool';
+  if (type.includes('tool') || type.includes('function') || type.includes('exec') || type.includes('command')) return 'tool';
   if (type.includes('system') || type.includes('context')) return 'system';
 
   return undefined;

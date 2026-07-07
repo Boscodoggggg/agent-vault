@@ -191,6 +191,13 @@ button {
   border-bottom: 1px solid var(--line);
 }
 
+.scan-status {
+  padding: 9px 18px;
+  border-bottom: 1px solid rgba(32, 35, 31, 0.06);
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .search-box {
   display: flex;
   align-items: center;

@@ -28,6 +28,18 @@ const providerLabel: Record<AgentProvider, string> = {
   'claude-code': 'Claude Code'
 };
 
+const assetKindLabel: Record<EnvironmentAssetKind, string> = {
+  skill: 'Skill',
+  agent: 'Agent',
+  command: '命令',
+  settings: '配置',
+  instruction: '指令',
+  hook: 'Hook',
+  prompt: 'Prompt',
+  mcp: 'MCP',
+  other: '其他'
+};
+
 type ViewMode = 'sessions' | 'environment';
 
 export default function App(): ReactElement {
@@ -90,7 +102,7 @@ export default function App(): ReactElement {
   const selectedAsset = filteredAssets.find((asset) => asset.id === selectedAssetId) ?? filteredAssets[0];
   const projectCount = new Set(sessions.map((session) => session.cwd).filter(Boolean)).size;
   const messageCount = sessions.reduce((count, session) => count + session.messages.length, 0);
-  const lastUpdated = sessions[0]?.updatedAt ? formatDate(sessions[0].updatedAt) : 'No sessions';
+  const lastUpdated = sessions[0]?.updatedAt ? formatDate(sessions[0].updatedAt) : '暂无会话';
   const providerFilteredCount =
     mode === 'sessions'
       ? provider === 'all'
@@ -118,7 +130,7 @@ export default function App(): ReactElement {
     } catch (packError) {
       setEnvironmentPackState({
         status: 'error',
-        message: packError instanceof Error ? packError.message : 'Environment pack failed'
+        message: packError instanceof Error ? packError.message : '环境包生成失败'
       });
     }
   }
@@ -132,7 +144,7 @@ export default function App(): ReactElement {
           </div>
           <div>
             <h1>Agent Vault</h1>
-            <p>Work continuity for local agents</p>
+            <p>AI 工作不断片</p>
           </div>
         </div>
 
@@ -145,7 +157,7 @@ export default function App(): ReactElement {
             }}
           >
             <Archive size={16} aria-hidden="true" />
-            <span>Sessions</span>
+            <span>会话</span>
           </button>
           <button
             className={mode === 'environment' ? 'active' : ''}
@@ -155,14 +167,14 @@ export default function App(): ReactElement {
             }}
           >
             <Settings2 size={16} aria-hidden="true" />
-            <span>Environment</span>
+            <span>环境</span>
           </button>
         </div>
 
         <nav className="source-nav" aria-label="Sources">
           <button className={provider === 'all' ? 'active' : ''} onClick={() => setProvider('all')}>
             <Box size={17} aria-hidden="true" />
-            <span>{mode === 'sessions' ? 'All Sources' : 'All Assets'}</span>
+            <span>{mode === 'sessions' ? '全部来源' : '全部资产'}</span>
             <strong>{providerFilteredCount}</strong>
           </button>
           <button className={provider === 'codex' ? 'active' : ''} onClick={() => setProvider('codex')}>
@@ -188,15 +200,15 @@ export default function App(): ReactElement {
         <div className="sidebar-metrics">
           {mode === 'sessions' ? (
             <>
-              <Metric label="Projects" value={String(projectCount)} />
-              <Metric label="Messages" value={compactNumber(messageCount)} />
-              <Metric label="Latest" value={lastUpdated} />
+              <Metric label="项目" value={String(projectCount)} />
+              <Metric label="消息" value={compactNumber(messageCount)} />
+              <Metric label="最近" value={lastUpdated} />
             </>
           ) : (
             <>
-              <Metric label="Assets" value={String(assets.length)} />
+              <Metric label="资产" value={String(assets.length)} />
               <Metric label="Skills" value={String(assets.filter((asset) => asset.kind === 'skill').length)} />
-              <Metric label="Auth State" value="Excluded" />
+              <Metric label="登录态" value="不导出" />
             </>
           )}
         </div>
@@ -209,19 +221,25 @@ export default function App(): ReactElement {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={
-                mode === 'sessions' ? 'Search projects, branches, models' : 'Search skills, agents, settings'
-              }
+              placeholder={mode === 'sessions' ? '搜索项目、分支、模型' : '搜索 skills、agents、配置'}
             />
           </label>
-          <button className="icon-button" onClick={() => void scan()} disabled={isScanning} title="Refresh sessions">
+          <button className="icon-button" onClick={() => void scan()} disabled={isScanning} title="重新扫描">
             <RefreshCw size={18} aria-hidden="true" />
           </button>
         </header>
 
+        <div className="scan-status">
+          {isScanning
+            ? '正在扫描本机 Codex / Claude Code 历史...'
+            : mode === 'sessions'
+              ? `已发现 ${filteredSessions.length} 个会话`
+              : `已发现 ${filteredAssets.length} 个环境资产`}
+        </div>
+
         {error ? <div className="inline-error">{error}</div> : null}
 
-        <div className="session-list" aria-label="Sessions">
+        <div className="session-list" aria-label={mode === 'sessions' ? '会话列表' : '环境资产列表'}>
           {mode === 'sessions'
             ? filteredSessions.map((session) => (
                 <button
@@ -237,7 +255,7 @@ export default function App(): ReactElement {
                     <strong>{session.title}</strong>
                     <small>{session.cwd ?? session.sourcePath}</small>
                   </span>
-                  <time>{session.updatedAt ? formatDate(session.updatedAt) : 'Unknown'}</time>
+                  <time>{session.updatedAt ? formatDate(session.updatedAt) : '未知'}</time>
                 </button>
               ))
             : filteredAssets.map((asset) => (
@@ -253,7 +271,7 @@ export default function App(): ReactElement {
                   <span className="session-copy">
                     <strong>{asset.relativePath}</strong>
                     <small>
-                      {providerLabel[asset.provider]} · {asset.kind}
+                      {providerLabel[asset.provider]} · {assetKindLabel[asset.kind]}
                     </small>
                   </span>
                   <time>{formatBytes(asset.byteSize)}</time>
@@ -287,23 +305,23 @@ export default function App(): ReactElement {
                 ) : (
                   <PackageOpen size={18} aria-hidden="true" />
                 )}
-                <span>{packState.status === 'writing' ? 'Writing Pack' : 'Build Pack'}</span>
+                <span>{packState.status === 'writing' ? '正在生成' : '生成续接包'}</span>
               </button>
             </header>
 
             <div className="meta-grid">
-              <Meta icon={<FolderGit2 size={17} />} label="Project" value={selected.cwd ?? 'Unknown'} />
-              <Meta icon={<Archive size={17} />} label="Branch" value={selected.gitBranch ?? 'Not captured'} />
+              <Meta icon={<FolderGit2 size={17} />} label="项目" value={selected.cwd ?? '未知'} />
+              <Meta icon={<Archive size={17} />} label="分支" value={selected.gitBranch ?? '未捕获'} />
               <Meta
                 icon={<Clock3 size={17} />}
-                label="Updated"
-                value={selected.updatedAt ? formatDate(selected.updatedAt) : 'Unknown'}
+                label="更新"
+                value={selected.updatedAt ? formatDate(selected.updatedAt) : '未知'}
               />
-              <Meta icon={<ShieldCheck size={17} />} label="Messages" value={String(selected.messages.length)} />
+              <Meta icon={<ShieldCheck size={17} />} label="消息" value={String(selected.messages.length)} />
             </div>
 
             <section className="pack-panel">
-              <h3>Continuation Pack</h3>
+              <h3>续接包</h3>
               <ul>
                 <li>handoff.md</li>
                 <li>conversation.md</li>
@@ -322,7 +340,7 @@ export default function App(): ReactElement {
             </section>
 
             <section className="conversation-preview">
-              <h3>Latest Context</h3>
+              <h3>最近上下文</h3>
               <div>
                 {selected.messages.slice(-6).map((message, index) => (
                   <article key={`${message.timestamp}-${index}`} className={`message ${message.role}`}>
@@ -336,10 +354,10 @@ export default function App(): ReactElement {
         ) : (
           <div className="empty-state">
             <Archive size={30} aria-hidden="true" />
-            <h2>No local sessions found</h2>
+            <h2>{mode === 'sessions' ? '没有发现本地会话' : '没有发现可迁移环境资产'}</h2>
             <button className="primary-action" onClick={() => void scan()}>
               <RefreshCw size={18} aria-hidden="true" />
-              <span>Scan Again</span>
+              <span>重新扫描</span>
             </button>
           </div>
         )}
@@ -365,8 +383,8 @@ function EnvironmentDetail({
     <>
       <header className="detail-header">
         <div>
-          <span className="eyebrow">Environment Pack</span>
-          <h2>Move skills, agents, prompts, and settings safely.</h2>
+          <span className="eyebrow">环境迁移包</span>
+          <h2>安全迁移 skills、agents、prompts 和配置。</h2>
         </div>
         <button className="primary-action" onClick={onWritePack} disabled={packState.status === 'writing'}>
           {packState.status === 'writing' ? (
@@ -374,26 +392,26 @@ function EnvironmentDetail({
           ) : (
             <PackageOpen size={18} aria-hidden="true" />
           )}
-          <span>{packState.status === 'writing' ? 'Writing Pack' : 'Build Environment Pack'}</span>
+          <span>{packState.status === 'writing' ? '正在生成' : '生成环境包'}</span>
         </button>
       </header>
 
       <div className="meta-grid">
-        <Meta icon={<Sparkles size={17} />} label="Assets" value={String(assets.length)} />
-        <Meta icon={<Settings2 size={17} />} label="Settings" value={String(kinds.settings ?? 0)} />
+        <Meta icon={<Sparkles size={17} />} label="资产" value={String(assets.length)} />
+        <Meta icon={<Settings2 size={17} />} label="配置" value={String(kinds.settings ?? 0)} />
         <Meta icon={<PackageOpen size={17} />} label="Skills" value={String(kinds.skill ?? 0)} />
-        <Meta icon={<KeyRound size={17} />} label="Auth" value="Excluded" />
+        <Meta icon={<KeyRound size={17} />} label="登录态" value="不导出" />
       </div>
 
       <section className="pack-panel">
-        <h3>Portable Environment</h3>
+        <h3>可迁移环境</h3>
         <ul>
           <li>skills</li>
           <li>agents</li>
           <li>commands</li>
           <li>prompts</li>
           <li>hooks</li>
-          <li>redacted settings</li>
+          <li>脱敏配置</li>
         </ul>
         {packState.status === 'ready' ? (
           <div className="pack-result">
@@ -405,19 +423,18 @@ function EnvironmentDetail({
       </section>
 
       <section className="conversation-preview">
-        <h3>{asset ? 'Selected Asset' : 'Restore Boundary'}</h3>
+        <h3>{asset ? '选中资产' : '恢复边界'}</h3>
         {asset ? (
           <div className="asset-detail">
-            <Meta icon={<Archive size={17} />} label="Kind" value={asset.kind} />
-            <Meta icon={<ShieldCheck size={17} />} label="Provider" value={providerLabel[asset.provider]} />
-            <Meta icon={<FolderGit2 size={17} />} label="Path" value={asset.relativePath} />
-            <Meta icon={<Box size={17} />} label="Size" value={formatBytes(asset.byteSize)} />
+            <Meta icon={<Archive size={17} />} label="类型" value={assetKindLabel[asset.kind]} />
+            <Meta icon={<ShieldCheck size={17} />} label="来源" value={providerLabel[asset.provider]} />
+            <Meta icon={<FolderGit2 size={17} />} label="路径" value={asset.relativePath} />
+            <Meta icon={<Box size={17} />} label="大小" value={formatBytes(asset.byteSize)} />
           </div>
         ) : (
           <div className="restore-boundary">
             <p>
-              Agent Vault exports portable assets only. Login state, auth caches, cookies, tokens, local sessions, and
-              machine-local files stay out of the pack.
+              Agent Vault 只导出可迁移资产。登录态、认证缓存、cookies、tokens、本机会话和机器本地文件不会进入迁移包。
             </p>
           </div>
         )}
@@ -447,8 +464,8 @@ function Meta({ icon, label, value }: { icon: ReactElement; label: string; value
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown';
-  return new Intl.DateTimeFormat(undefined, {
+  if (Number.isNaN(date.getTime())) return '未知';
+  return new Intl.DateTimeFormat('zh-CN', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -457,7 +474,7 @@ function formatDate(value: string): string {
 }
 
 function compactNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
+  return new Intl.NumberFormat('zh-CN', { notation: 'compact' }).format(value);
 }
 
 function formatBytes(value: number): string {

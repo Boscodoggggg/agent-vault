@@ -5,9 +5,9 @@ import { findJsonlFiles } from './fs';
 import { parseSessionFile } from './providers';
 import type { AgentProvider, AgentSession, ScanOptions } from './types';
 
-const PROVIDER_ROOTS: Record<AgentProvider, (homeDir: string) => string> = {
-  codex: (homeDir) => join(homeDir, '.codex', 'sessions'),
-  'claude-code': (homeDir) => join(homeDir, '.claude', 'projects')
+const PROVIDER_ROOTS: Record<AgentProvider, (homeDir: string) => string[]> = {
+  codex: (homeDir) => [join(homeDir, '.codex', 'sessions'), join(homeDir, '.codex', 'archived_sessions')],
+  'claude-code': (homeDir) => [join(homeDir, '.claude', 'projects')]
 };
 
 export async function scanAgentSessions(options: ScanOptions = {}): Promise<AgentSession[]> {
@@ -16,10 +16,10 @@ export async function scanAgentSessions(options: ScanOptions = {}): Promise<Agen
   const sessions: AgentSession[] = [];
 
   for (const provider of providers) {
-    const root = PROVIDER_ROOTS[provider](homeDir);
-    const files = await findJsonlFiles(root);
+    const files = (await Promise.all(PROVIDER_ROOTS[provider](homeDir).map((root) => findJsonlFiles(root)))).flat();
 
     for (const file of files) {
+      if (provider === 'claude-code' && file.includes('/subagents/')) continue;
       const raw = await readFile(file, 'utf8');
       const session = parseSessionFile(provider, file, raw);
       if (session) sessions.push(session);
@@ -30,5 +30,5 @@ export async function scanAgentSessions(options: ScanOptions = {}): Promise<Agen
 }
 
 export function providerRoot(provider: AgentProvider, homeDir = homedir()): string {
-  return PROVIDER_ROOTS[provider](homeDir);
+  return PROVIDER_ROOTS[provider](homeDir)[0] ?? homeDir;
 }

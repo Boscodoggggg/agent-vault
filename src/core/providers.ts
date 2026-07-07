@@ -18,32 +18,52 @@ export function parseSessionFile(provider: AgentProvider, sourcePath: string, ra
   let updatedAt: string | undefined;
 
   for (const record of records) {
-    id = firstString(record.sessionId, record.session_id, record.threadId, record.thread_id, record.id) ?? id;
-    cwd = cwd ?? firstString(record.cwd, record.workingDirectory, record.working_directory);
-    gitBranch = gitBranch ?? firstString(record.gitBranch, record.git_branch, record.branch);
-    model = model ?? firstString(record.model, record.modelId, record.model_id);
+    const effectiveRecord = unwrapPayloadRecord(record);
+    const git = asRecord(effectiveRecord.git);
 
-    const timestamp = firstString(record.timestamp, record.createdAt, record.created_at);
+    id =
+      firstString(
+        effectiveRecord.sessionId,
+        effectiveRecord.session_id,
+        effectiveRecord.threadId,
+        effectiveRecord.thread_id,
+        effectiveRecord.id,
+        record.sessionId,
+        record.id
+      ) ?? id;
+    cwd =
+      cwd ??
+      firstString(effectiveRecord.cwd, effectiveRecord.workingDirectory, effectiveRecord.working_directory, record.cwd);
+    gitBranch =
+      gitBranch ??
+      firstString(effectiveRecord.gitBranch, effectiveRecord.git_branch, effectiveRecord.branch, git?.branch);
+    model =
+      model ??
+      firstString(effectiveRecord.model, effectiveRecord.modelId, effectiveRecord.model_id, effectiveRecord.model_provider);
+
+    const timestamp = firstString(effectiveRecord.timestamp, record.timestamp, record.createdAt, record.created_at);
     createdAt = earliestIso(createdAt, timestamp);
     updatedAt = latestIso(updatedAt, timestamp);
 
-    const role = inferRole(record);
+    const role = inferRole(effectiveRecord);
     if (!role || role === 'system') continue;
 
-    const messageRecord = asRecord(record.message);
+    const messageRecord = asRecord(effectiveRecord.message);
     const text = [
       contentToText(messageRecord?.content),
       contentToText(messageRecord?.text),
-      contentToText(record.content),
-      contentToText(record.text),
-      contentToText(record.message),
-      contentToText(record.output),
-      contentToText(record.item)
+      contentToText(effectiveRecord.content),
+      contentToText(effectiveRecord.text),
+      contentToText(effectiveRecord.message),
+      contentToText(effectiveRecord.output),
+      contentToText(effectiveRecord.item)
     ]
       .find(Boolean)
       ?.trim();
 
     if (!text) continue;
+    if (isSyntheticContextMessage(role, text)) continue;
+
     messages.push({
       role,
       timestamp,
@@ -66,6 +86,23 @@ export function parseSessionFile(provider: AgentProvider, sourcePath: string, ra
     updatedAt: updatedAt ?? createdAt ?? fallbackTime,
     messages,
     errors: parsed.errors.map(({ line, message }) => ({ line, message }))
+  };
+}
+
+function isSyntheticContextMessage(role: string, text: string): boolean {
+  if (role !== 'user') return false;
+  const normalized = text.trim();
+  return normalized.startsWith('<environment_context>') || normalized.startsWith('<user_instructions>');
+}
+
+function unwrapPayloadRecord(record: Record<string, unknown>): Record<string, unknown> {
+  const payload = asRecord(record.payload);
+  if (!payload) return record;
+
+  return {
+    ...payload,
+    timestamp: firstString(payload.timestamp, record.timestamp),
+    outerType: record.type
   };
 }
 
