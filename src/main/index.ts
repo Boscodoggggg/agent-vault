@@ -5,6 +5,7 @@ import { scanAgentSessions } from '../core/scanner';
 import { captureGitSnapshot } from '../core/gitSnapshot';
 import { writeContinuationPack } from '../core/continuationPack';
 import { scanEnvironmentAssets, writeEnvironmentPack } from '../core/environmentPack';
+import { resolvePreloadPath } from './paths';
 import type { AgentSession } from '../core/types';
 
 let mainWindow: BrowserWindow | undefined;
@@ -22,7 +23,7 @@ function createWindow(): void {
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 18 },
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: resolvePreloadPath(__dirname),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false

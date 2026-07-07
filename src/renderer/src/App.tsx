@@ -1,17 +1,34 @@
 import {
-  Archive,
-  Box,
-  Check,
-  Clock3,
-  FolderGit2,
-  KeyRound,
-  PackageOpen,
-  RefreshCw,
-  Search,
-  Settings2,
-  ShieldCheck,
-  Sparkles
-} from 'lucide-react';
+  App as AntApp,
+  Alert,
+  Button,
+  ConfigProvider,
+  Empty,
+  Flex,
+  Input,
+  Layout,
+  List,
+  Segmented,
+  Space,
+  Statistic,
+  Tag,
+  Typography,
+  theme
+} from 'antd';
+import {
+  AppstoreOutlined,
+  CloudServerOutlined,
+  CodeOutlined,
+  DatabaseOutlined,
+  ExportOutlined,
+  FileSearchOutlined,
+  FolderOpenOutlined,
+  HistoryOutlined,
+  ReloadOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
+  ToolOutlined
+} from '@ant-design/icons';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { EnvironmentAsset, EnvironmentAssetKind } from '../../core/environmentPack';
@@ -22,6 +39,11 @@ type PackState =
   | { status: 'writing'; sessionId: string }
   | { status: 'ready'; outputDir: string; files: string[] }
   | { status: 'error'; message: string };
+
+type ViewMode = 'sessions' | 'environment';
+
+const { Sider, Content } = Layout;
+const { Text, Title, Paragraph } = Typography;
 
 const providerLabel: Record<AgentProvider, string> = {
   codex: 'Codex',
@@ -40,9 +62,42 @@ const assetKindLabel: Record<EnvironmentAssetKind, string> = {
   other: '其他'
 };
 
-type ViewMode = 'sessions' | 'environment';
-
 export default function App(): ReactElement {
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: theme.defaultAlgorithm,
+        token: {
+          colorPrimary: '#2f6f4e',
+          colorInfo: '#2f6f4e',
+          colorBgLayout: '#f3f5f0',
+          colorTextBase: '#20231f',
+          borderRadius: 8,
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
+        },
+        components: {
+          Layout: {
+            siderBg: '#20231f',
+            triggerBg: '#20231f'
+          },
+          Button: {
+            controlHeight: 38
+          },
+          Input: {
+            controlHeight: 40
+          }
+        }
+      }}
+    >
+      <AntApp>
+        <VaultWorkbench />
+      </AntApp>
+    </ConfigProvider>
+  );
+}
+
+function VaultWorkbench(): ReactElement {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [assets, setAssets] = useState<EnvironmentAsset[]>([]);
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -58,17 +113,17 @@ export default function App(): ReactElement {
   async function scan(): Promise<void> {
     setIsScanning(true);
     setError(undefined);
+
     try {
-      const [nextSessions, nextAssets] = await Promise.all([
-        window.agentVault.scan(),
-        window.agentVault.scanEnvironment()
-      ]);
+      if (!window.agentVault) throw new Error('桌面桥接未加载，请重启 Agent Vault。');
+
+      const [nextSessions, nextAssets] = await Promise.all([window.agentVault.scan(), window.agentVault.scanEnvironment()]);
       setSessions(nextSessions);
       setAssets(nextAssets);
       setSelectedId((current) => current ?? nextSessions[0]?.id);
       setSelectedAssetId((current) => current ?? nextAssets[0]?.id);
     } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : 'Scan failed');
+      setError(scanError instanceof Error ? scanError.message : '扫描失败');
     } finally {
       setIsScanning(false);
     }
@@ -103,7 +158,7 @@ export default function App(): ReactElement {
   const projectCount = new Set(sessions.map((session) => session.cwd).filter(Boolean)).size;
   const messageCount = sessions.reduce((count, session) => count + session.messages.length, 0);
   const lastUpdated = sessions[0]?.updatedAt ? formatDate(sessions[0].updatedAt) : '暂无会话';
-  const providerFilteredCount =
+  const scopedCount =
     mode === 'sessions'
       ? provider === 'all'
         ? sessions.length
@@ -118,7 +173,7 @@ export default function App(): ReactElement {
       const result = await window.agentVault.writePack(session.id);
       setPackState({ status: 'ready', ...result });
     } catch (packError) {
-      setPackState({ status: 'error', message: packError instanceof Error ? packError.message : 'Pack failed' });
+      setPackState({ status: 'error', message: packError instanceof Error ? packError.message : '续接包生成失败' });
     }
   }
 
@@ -136,233 +191,319 @@ export default function App(): ReactElement {
   }
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">
-            <Archive size={20} aria-hidden="true" />
-          </div>
-          <div>
-            <h1>Agent Vault</h1>
-            <p>AI 工作不断片</p>
-          </div>
+    <Layout className="vault-shell">
+      <Sider width={292} className="vault-sider">
+        <div className="window-dots" aria-hidden="true">
+          <span className="red" />
+          <span className="yellow" />
+          <span className="green" />
         </div>
 
-        <div className="mode-nav" aria-label="Workspace mode">
-          <button
-            className={mode === 'sessions' ? 'active' : ''}
-            onClick={() => {
-              setMode('sessions');
+        <Flex vertical gap={24} className="sider-inner">
+          <Flex gap={12} align="center">
+            <div className="brand-tile">
+              <DatabaseOutlined />
+            </div>
+            <div>
+              <Title level={3} className="brand-title">
+                Agent Vault
+              </Title>
+              <Text className="brand-subtitle">AI 工作不断片</Text>
+            </div>
+          </Flex>
+
+          <Segmented
+            block
+            size="large"
+            value={mode}
+            onChange={(value) => {
+              setMode(value as ViewMode);
               setPackState({ status: 'idle' });
-            }}
-          >
-            <Archive size={16} aria-hidden="true" />
-            <span>会话</span>
-          </button>
-          <button
-            className={mode === 'environment' ? 'active' : ''}
-            onClick={() => {
-              setMode('environment');
               setEnvironmentPackState({ status: 'idle' });
             }}
-          >
-            <Settings2 size={16} aria-hidden="true" />
-            <span>环境</span>
-          </button>
-        </div>
-
-        <nav className="source-nav" aria-label="Sources">
-          <button className={provider === 'all' ? 'active' : ''} onClick={() => setProvider('all')}>
-            <Box size={17} aria-hidden="true" />
-            <span>{mode === 'sessions' ? '全部来源' : '全部资产'}</span>
-            <strong>{providerFilteredCount}</strong>
-          </button>
-          <button className={provider === 'codex' ? 'active' : ''} onClick={() => setProvider('codex')}>
-            <ShieldCheck size={17} aria-hidden="true" />
-            <span>Codex</span>
-            <strong>
-              {mode === 'sessions'
-                ? sessions.filter((session) => session.provider === 'codex').length
-                : assets.filter((asset) => asset.provider === 'codex').length}
-            </strong>
-          </button>
-          <button className={provider === 'claude-code' ? 'active' : ''} onClick={() => setProvider('claude-code')}>
-            <PackageOpen size={17} aria-hidden="true" />
-            <span>Claude Code</span>
-            <strong>
-              {mode === 'sessions'
-                ? sessions.filter((session) => session.provider === 'claude-code').length
-                : assets.filter((asset) => asset.provider === 'claude-code').length}
-            </strong>
-          </button>
-        </nav>
-
-        <div className="sidebar-metrics">
-          {mode === 'sessions' ? (
-            <>
-              <Metric label="项目" value={String(projectCount)} />
-              <Metric label="消息" value={compactNumber(messageCount)} />
-              <Metric label="最近" value={lastUpdated} />
-            </>
-          ) : (
-            <>
-              <Metric label="资产" value={String(assets.length)} />
-              <Metric label="Skills" value={String(assets.filter((asset) => asset.kind === 'skill').length)} />
-              <Metric label="登录态" value="不导出" />
-            </>
-          )}
-        </div>
-      </aside>
-
-      <section className="session-pane">
-        <header className="toolbar">
-          <label className="search-box">
-            <Search size={17} aria-hidden="true" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={mode === 'sessions' ? '搜索项目、分支、模型' : '搜索 skills、agents、配置'}
-            />
-          </label>
-          <button className="icon-button" onClick={() => void scan()} disabled={isScanning} title="重新扫描">
-            <RefreshCw size={18} aria-hidden="true" />
-          </button>
-        </header>
-
-        <div className="scan-status">
-          {isScanning
-            ? '正在扫描本机 Codex / Claude Code 历史...'
-            : mode === 'sessions'
-              ? `已发现 ${filteredSessions.length} 个会话`
-              : `已发现 ${filteredAssets.length} 个环境资产`}
-        </div>
-
-        {error ? <div className="inline-error">{error}</div> : null}
-
-        <div className="session-list" aria-label={mode === 'sessions' ? '会话列表' : '环境资产列表'}>
-          {mode === 'sessions'
-            ? filteredSessions.map((session) => (
-                <button
-                  key={`${session.provider}-${session.id}-${session.sourcePath}`}
-                  className={`session-row ${selected?.id === session.id ? 'selected' : ''}`}
-                  onClick={() => {
-                    setSelectedId(session.id);
-                    setPackState({ status: 'idle' });
-                  }}
-                >
-                  <span className={`provider-dot ${session.provider}`} />
-                  <span className="session-copy">
-                    <strong>{session.title}</strong>
-                    <small>{session.cwd ?? session.sourcePath}</small>
-                  </span>
-                  <time>{session.updatedAt ? formatDate(session.updatedAt) : '未知'}</time>
-                </button>
-              ))
-            : filteredAssets.map((asset) => (
-                <button
-                  key={asset.id}
-                  className={`session-row ${selectedAsset?.id === asset.id ? 'selected' : ''}`}
-                  onClick={() => {
-                    setSelectedAssetId(asset.id);
-                    setEnvironmentPackState({ status: 'idle' });
-                  }}
-                >
-                  <span className={`provider-dot ${asset.provider}`} />
-                  <span className="session-copy">
-                    <strong>{asset.relativePath}</strong>
-                    <small>
-                      {providerLabel[asset.provider]} · {assetKindLabel[asset.kind]}
-                    </small>
-                  </span>
-                  <time>{formatBytes(asset.byteSize)}</time>
-                </button>
-              ))}
-        </div>
-      </section>
-
-      <section className="detail-pane">
-        {mode === 'environment' ? (
-          <EnvironmentDetail
-            asset={selectedAsset}
-            assets={filteredAssets}
-            packState={environmentPackState}
-            onWritePack={() => void writeEnvironmentPack()}
+            options={[
+              { label: '会话', value: 'sessions', icon: <HistoryOutlined /> },
+              { label: '环境', value: 'environment', icon: <SettingOutlined /> }
+            ]}
           />
-        ) : selected ? (
-          <>
-            <header className="detail-header">
-              <div>
-                <span className="eyebrow">{providerLabel[selected.provider]}</span>
-                <h2>{selected.title}</h2>
-              </div>
-              <button
-                className="primary-action"
-                onClick={() => void writePack(selected)}
-                disabled={packState.status === 'writing'}
-              >
-                {packState.status === 'writing' ? (
-                  <RefreshCw size={18} aria-hidden="true" />
-                ) : (
-                  <PackageOpen size={18} aria-hidden="true" />
-                )}
-                <span>{packState.status === 'writing' ? '正在生成' : '生成续接包'}</span>
-              </button>
-            </header>
 
-            <div className="meta-grid">
-              <Meta icon={<FolderGit2 size={17} />} label="项目" value={selected.cwd ?? '未知'} />
-              <Meta icon={<Archive size={17} />} label="分支" value={selected.gitBranch ?? '未捕获'} />
-              <Meta
-                icon={<Clock3 size={17} />}
-                label="更新"
-                value={selected.updatedAt ? formatDate(selected.updatedAt) : '未知'}
+          <div className="provider-menu">
+            <ProviderButton
+              active={provider === 'all'}
+              icon={<AppstoreOutlined />}
+              label={mode === 'sessions' ? '全部来源' : '全部资产'}
+              count={scopedCount}
+              onClick={() => setProvider('all')}
+            />
+            <ProviderButton
+              active={provider === 'codex'}
+              icon={<SafetyCertificateOutlined />}
+              label="Codex"
+              count={
+                mode === 'sessions'
+                  ? sessions.filter((session) => session.provider === 'codex').length
+                  : assets.filter((asset) => asset.provider === 'codex').length
+              }
+              onClick={() => setProvider('codex')}
+            />
+            <ProviderButton
+              active={provider === 'claude-code'}
+              icon={<CloudServerOutlined />}
+              label="Claude Code"
+              count={
+                mode === 'sessions'
+                  ? sessions.filter((session) => session.provider === 'claude-code').length
+                  : assets.filter((asset) => asset.provider === 'claude-code').length
+              }
+              onClick={() => setProvider('claude-code')}
+            />
+          </div>
+
+          <div className="sider-stats">
+            {mode === 'sessions' ? (
+              <>
+                <StatRow label="项目" value={String(projectCount)} />
+                <StatRow label="消息" value={compactNumber(messageCount)} />
+                <StatRow label="最近" value={lastUpdated} />
+              </>
+            ) : (
+              <>
+                <StatRow label="资产" value={String(assets.length)} />
+                <StatRow label="Skills" value={String(assets.filter((asset) => asset.kind === 'skill').length)} />
+                <StatRow label="登录态" value="不导出" />
+              </>
+            )}
+          </div>
+        </Flex>
+      </Sider>
+
+      <Layout>
+        <Content className="vault-main">
+          <section className="list-pane">
+            <Flex gap={10} className="list-toolbar">
+              <Input
+                allowClear
+                prefix={<FileSearchOutlined />}
+                placeholder={mode === 'sessions' ? '搜索项目、分支、模型' : '搜索 skills、agents、配置'}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
               />
-              <Meta icon={<ShieldCheck size={17} />} label="消息" value={String(selected.messages.length)} />
+              <Button icon={<ReloadOutlined spin={isScanning} />} onClick={() => void scan()} disabled={isScanning} />
+            </Flex>
+
+            <div className="scan-line">
+              {isScanning
+                ? '正在扫描本机 Codex / Claude Code 历史...'
+                : mode === 'sessions'
+                  ? `已发现 ${filteredSessions.length} 个会话`
+                  : `已发现 ${filteredAssets.length} 个环境资产`}
             </div>
 
-            <section className="pack-panel">
-              <h3>续接包</h3>
-              <ul>
-                <li>handoff.md</li>
-                <li>conversation.md</li>
-                <li>state.json</li>
-                <li>git.patch</li>
-              </ul>
-              {packState.status === 'ready' ? (
-                <div className="pack-result">
-                  <Check size={18} aria-hidden="true" />
-                  <button onClick={() => void window.agentVault.openPath(packState.outputDir)}>
-                    {packState.outputDir}
-                  </button>
-                </div>
-              ) : null}
-              {packState.status === 'error' ? <div className="inline-error">{packState.message}</div> : null}
-            </section>
+            {error ? <Alert className="error-alert" type="error" showIcon message={error} /> : null}
 
-            <section className="conversation-preview">
-              <h3>最近上下文</h3>
-              <div>
-                {selected.messages.slice(-6).map((message, index) => (
-                  <article key={`${message.timestamp}-${index}`} className={`message ${message.role}`}>
-                    <span>{message.role}</span>
-                    <p>{message.content}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </>
-        ) : (
-          <div className="empty-state">
-            <Archive size={30} aria-hidden="true" />
-            <h2>{mode === 'sessions' ? '没有发现本地会话' : '没有发现可迁移环境资产'}</h2>
-            <button className="primary-action" onClick={() => void scan()}>
-              <RefreshCw size={18} aria-hidden="true" />
-              <span>重新扫描</span>
-            </button>
-          </div>
-        )}
+            {mode === 'sessions' ? (
+              <SessionList
+                sessions={filteredSessions}
+                selectedId={selected?.id}
+                onSelect={(session) => {
+                  setSelectedId(session.id);
+                  setPackState({ status: 'idle' });
+                }}
+              />
+            ) : (
+              <AssetList
+                assets={filteredAssets}
+                selectedId={selectedAsset?.id}
+                onSelect={(asset) => {
+                  setSelectedAssetId(asset.id);
+                  setEnvironmentPackState({ status: 'idle' });
+                }}
+              />
+            )}
+          </section>
+
+          <section className="detail-pane">
+            {mode === 'environment' ? (
+              <EnvironmentDetail
+                asset={selectedAsset}
+                assets={filteredAssets}
+                packState={environmentPackState}
+                onWritePack={() => void writeEnvironmentPack()}
+              />
+            ) : selected ? (
+              <SessionDetail session={selected} packState={packState} onWritePack={() => void writePack(selected)} />
+            ) : (
+              <EmptyState mode={mode} onScan={() => void scan()} />
+            )}
+          </section>
+        </Content>
+      </Layout>
+    </Layout>
+  );
+}
+
+function ProviderButton({
+  active,
+  icon,
+  label,
+  count,
+  onClick
+}: {
+  active: boolean;
+  icon: ReactElement;
+  label: string;
+  count: number;
+  onClick: () => void;
+}): ReactElement {
+  return (
+    <Button type={active ? 'primary' : 'text'} className="provider-button" icon={icon} onClick={onClick}>
+      <span>{label}</span>
+      <Text className="provider-count">{count}</Text>
+    </Button>
+  );
+}
+
+function StatRow({ label, value }: { label: string; value: string }): ReactElement {
+  return (
+    <Flex justify="space-between" className="stat-row">
+      <Text>{label}</Text>
+      <Text strong>{value}</Text>
+    </Flex>
+  );
+}
+
+function SessionList({
+  sessions,
+  selectedId,
+  onSelect
+}: {
+  sessions: AgentSession[];
+  selectedId: string | undefined;
+  onSelect: (session: AgentSession) => void;
+}): ReactElement {
+  if (sessions.length === 0) return <Empty className="list-empty" description="没有匹配的会话" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+
+  return (
+    <List
+      className="entity-list"
+      dataSource={sessions}
+      rowKey={(session) => `${session.provider}-${session.id}-${session.sourcePath}`}
+      renderItem={(session) => (
+        <List.Item
+          className={selectedId === session.id ? 'entity-item selected' : 'entity-item'}
+          onClick={() => onSelect(session)}
+        >
+          <List.Item.Meta
+            avatar={<ProviderAvatar provider={session.provider} />}
+            title={<Text ellipsis>{session.title}</Text>}
+            description={
+              <Space direction="vertical" size={2} className="item-description">
+                <Text type="secondary" ellipsis>
+                  {session.cwd ?? session.sourcePath}
+                </Text>
+                <Space size={6} wrap>
+                  <Tag>{providerLabel[session.provider]}</Tag>
+                  <Tag>{session.messages.length} 条消息</Tag>
+                  <Tag>{session.updatedAt ? formatDate(session.updatedAt) : '未知时间'}</Tag>
+                </Space>
+              </Space>
+            }
+          />
+        </List.Item>
+      )}
+    />
+  );
+}
+
+function AssetList({
+  assets,
+  selectedId,
+  onSelect
+}: {
+  assets: EnvironmentAsset[];
+  selectedId: string | undefined;
+  onSelect: (asset: EnvironmentAsset) => void;
+}): ReactElement {
+  if (assets.length === 0) return <Empty className="list-empty" description="没有匹配的环境资产" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+
+  return (
+    <List
+      className="entity-list"
+      dataSource={assets}
+      rowKey={(asset) => asset.id}
+      renderItem={(asset) => (
+        <List.Item className={selectedId === asset.id ? 'entity-item selected' : 'entity-item'} onClick={() => onSelect(asset)}>
+          <List.Item.Meta
+            avatar={<ProviderAvatar provider={asset.provider} />}
+            title={<Text ellipsis>{asset.relativePath}</Text>}
+            description={
+              <Space size={6} wrap>
+                <Tag>{providerLabel[asset.provider]}</Tag>
+                <Tag>{assetKindLabel[asset.kind]}</Tag>
+                <Tag>{formatBytes(asset.byteSize)}</Tag>
+              </Space>
+            }
+          />
+        </List.Item>
+      )}
+    />
+  );
+}
+
+function SessionDetail({
+  session,
+  packState,
+  onWritePack
+}: {
+  session: AgentSession;
+  packState: PackState;
+  onWritePack: () => void;
+}): ReactElement {
+  return (
+    <Flex vertical gap={22}>
+      <Flex justify="space-between" align="flex-start" gap={24}>
+        <div>
+          <Tag color={session.provider === 'codex' ? 'green' : 'orange'}>{providerLabel[session.provider]}</Tag>
+          <Title level={2} className="detail-title">
+            {session.title}
+          </Title>
+        </div>
+        <Button
+          type="primary"
+          icon={<ExportOutlined />}
+          loading={packState.status === 'writing'}
+          onClick={onWritePack}
+        >
+          生成续接包
+        </Button>
+      </Flex>
+
+      <div className="metric-grid">
+        <Statistic title="项目" value={session.cwd ?? '未知'} prefix={<FolderOpenOutlined />} />
+        <Statistic title="分支" value={session.gitBranch ?? '未捕获'} prefix={<CodeOutlined />} />
+        <Statistic title="更新" value={session.updatedAt ? formatDate(session.updatedAt) : '未知'} prefix={<HistoryOutlined />} />
+        <Statistic title="消息" value={session.messages.length} prefix={<FileSearchOutlined />} />
+      </div>
+
+      <PackResult state={packState} />
+
+      <section className="content-section">
+        <Flex justify="space-between" align="center">
+          <Title level={4}>最近上下文</Title>
+          <Text type="secondary">展示最后 6 条消息</Text>
+        </Flex>
+        <div className="message-stack">
+          {session.messages.slice(-6).map((message, index) => (
+            <div key={`${message.timestamp}-${index}`} className="message-row">
+              <Tag color={message.role === 'user' ? 'blue' : message.role === 'assistant' ? 'green' : 'default'}>
+                {message.role}
+              </Tag>
+              <Paragraph ellipsis={{ rows: 4, expandable: true, symbol: '展开' }}>{message.content}</Paragraph>
+            </div>
+          ))}
+        </div>
       </section>
-    </main>
+    </Flex>
   );
 }
 
@@ -380,84 +521,98 @@ function EnvironmentDetail({
   const kinds = countKinds(assets);
 
   return (
-    <>
-      <header className="detail-header">
+    <Flex vertical gap={22}>
+      <Flex justify="space-between" align="flex-start" gap={24}>
         <div>
-          <span className="eyebrow">环境迁移包</span>
-          <h2>安全迁移 skills、agents、prompts 和配置。</h2>
+          <Tag color="green">环境迁移包</Tag>
+          <Title level={2} className="detail-title">
+            安全迁移 skills、agents、prompts 和配置。
+          </Title>
         </div>
-        <button className="primary-action" onClick={onWritePack} disabled={packState.status === 'writing'}>
-          {packState.status === 'writing' ? (
-            <RefreshCw size={18} aria-hidden="true" />
-          ) : (
-            <PackageOpen size={18} aria-hidden="true" />
-          )}
-          <span>{packState.status === 'writing' ? '正在生成' : '生成环境包'}</span>
-        </button>
-      </header>
+        <Button
+          type="primary"
+          icon={<ExportOutlined />}
+          loading={packState.status === 'writing'}
+          onClick={onWritePack}
+        >
+          生成环境包
+        </Button>
+      </Flex>
 
-      <div className="meta-grid">
-        <Meta icon={<Sparkles size={17} />} label="资产" value={String(assets.length)} />
-        <Meta icon={<Settings2 size={17} />} label="配置" value={String(kinds.settings ?? 0)} />
-        <Meta icon={<PackageOpen size={17} />} label="Skills" value={String(kinds.skill ?? 0)} />
-        <Meta icon={<KeyRound size={17} />} label="登录态" value="不导出" />
+      <div className="metric-grid">
+        <Statistic title="资产" value={assets.length} prefix={<AppstoreOutlined />} />
+        <Statistic title="配置" value={kinds.settings ?? 0} prefix={<SettingOutlined />} />
+        <Statistic title="Skills" value={kinds.skill ?? 0} prefix={<ToolOutlined />} />
+        <Statistic title="登录态" value="不导出" prefix={<SafetyCertificateOutlined />} />
       </div>
 
-      <section className="pack-panel">
-        <h3>可迁移环境</h3>
-        <ul>
-          <li>skills</li>
-          <li>agents</li>
-          <li>commands</li>
-          <li>prompts</li>
-          <li>hooks</li>
-          <li>脱敏配置</li>
-        </ul>
-        {packState.status === 'ready' ? (
-          <div className="pack-result">
-            <Check size={18} aria-hidden="true" />
-            <button onClick={() => void window.agentVault.openPath(packState.outputDir)}>{packState.outputDir}</button>
-          </div>
-        ) : null}
-        {packState.status === 'error' ? <div className="inline-error">{packState.message}</div> : null}
-      </section>
+      <PackResult state={packState} />
 
-      <section className="conversation-preview">
-        <h3>{asset ? '选中资产' : '恢复边界'}</h3>
+      <section className="content-section">
+        <Title level={4}>{asset ? '选中资产' : '恢复边界'}</Title>
         {asset ? (
-          <div className="asset-detail">
-            <Meta icon={<Archive size={17} />} label="类型" value={assetKindLabel[asset.kind]} />
-            <Meta icon={<ShieldCheck size={17} />} label="来源" value={providerLabel[asset.provider]} />
-            <Meta icon={<FolderGit2 size={17} />} label="路径" value={asset.relativePath} />
-            <Meta icon={<Box size={17} />} label="大小" value={formatBytes(asset.byteSize)} />
+          <div className="asset-grid">
+            <Info label="类型" value={assetKindLabel[asset.kind]} />
+            <Info label="来源" value={providerLabel[asset.provider]} />
+            <Info label="路径" value={asset.relativePath} />
+            <Info label="大小" value={formatBytes(asset.byteSize)} />
           </div>
         ) : (
-          <div className="restore-boundary">
-            <p>
-              Agent Vault 只导出可迁移资产。登录态、认证缓存、cookies、tokens、本机会话和机器本地文件不会进入迁移包。
-            </p>
-          </div>
+          <Alert
+            type="info"
+            showIcon
+            message="只导出可迁移资产"
+            description="登录态、认证缓存、cookies、tokens、本机会话和机器本地文件不会进入迁移包。"
+          />
         )}
       </section>
-    </>
+    </Flex>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }): ReactElement {
+function PackResult({ state }: { state: PackState }): ReactElement | null {
+  if (state.status === 'idle' || state.status === 'writing') return null;
+
+  if (state.status === 'error') return <Alert type="error" showIcon message={state.message} />;
+
   return (
-    <div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
+    <Alert
+      type="success"
+      showIcon
+      message="生成成功"
+      description={
+        <Button type="link" className="path-link" onClick={() => void window.agentVault.openPath(state.outputDir)}>
+          {state.outputDir}
+        </Button>
+      }
+    />
   );
 }
 
-function Meta({ icon, label, value }: { icon: ReactElement; label: string; value: string }): ReactElement {
+function EmptyState({ mode, onScan }: { mode: ViewMode; onScan: () => void }): ReactElement {
   return (
-    <div className="meta-item">
-      {icon}
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <Empty
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+      description={mode === 'sessions' ? '没有发现本地会话' : '没有发现可迁移环境资产'}
+    >
+      <Button type="primary" icon={<ReloadOutlined />} onClick={onScan}>
+        重新扫描
+      </Button>
+    </Empty>
+  );
+}
+
+function ProviderAvatar({ provider }: { provider: AgentProvider }): ReactElement {
+  return <div className={`provider-avatar ${provider}`}>{provider === 'codex' ? <SafetyCertificateOutlined /> : <CloudServerOutlined />}</div>;
+}
+
+function Info({ label, value }: { label: string; value: string }): ReactElement {
+  return (
+    <div className="info-cell">
+      <Text type="secondary">{label}</Text>
+      <Text strong ellipsis>
+        {value}
+      </Text>
     </div>
   );
 }
