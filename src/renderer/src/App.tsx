@@ -10,7 +10,6 @@ import {
   List,
   Segmented,
   Space,
-  Statistic,
   Tag,
   Typography,
   theme
@@ -50,6 +49,13 @@ const providerLabel: Record<AgentProvider, string> = {
   'claude-code': 'Claude Code'
 };
 
+const roleLabel: Record<string, string> = {
+  user: '用户',
+  assistant: '助手',
+  system: '系统',
+  tool: '工具'
+};
+
 const assetKindLabel: Record<EnvironmentAssetKind, string> = {
   skill: 'Skill',
   agent: 'Agent',
@@ -66,26 +72,40 @@ export default function App(): ReactElement {
   return (
     <ConfigProvider
       theme={{
-        algorithm: theme.defaultAlgorithm,
+        algorithm: [theme.defaultAlgorithm, theme.compactAlgorithm],
         token: {
-          colorPrimary: '#2f6f4e',
-          colorInfo: '#2f6f4e',
-          colorBgLayout: '#f3f5f0',
-          colorTextBase: '#20231f',
-          borderRadius: 8,
+          colorPrimary: '#b85a3a',
+          colorInfo: '#315f9f',
+          colorSuccess: '#16845d',
+          colorWarning: '#a86b12',
+          colorError: '#c7382f',
+          colorBgLayout: '#eef3f8',
+          colorBgContainer: '#f8fafc',
+          colorBorder: '#d5dde8',
+          colorTextBase: '#111827',
+          borderRadius: 6,
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
         },
         components: {
           Layout: {
-            siderBg: '#20231f',
-            triggerBg: '#20231f'
+            siderBg: '#20252c',
+            triggerBg: '#20252c'
           },
           Button: {
-            controlHeight: 38
+            controlHeight: 34,
+            borderRadius: 6
           },
           Input: {
-            controlHeight: 40
+            controlHeight: 36,
+            borderRadius: 6
+          },
+          Tag: {
+            borderRadiusSM: 5
+          },
+          Segmented: {
+            borderRadius: 6,
+            borderRadiusSM: 5
           }
         }
       }}
@@ -208,7 +228,7 @@ function VaultWorkbench(): ReactElement {
               <Title level={3} className="brand-title">
                 Agent Vault
               </Title>
-              <Text className="brand-subtitle">AI 工作不断片</Text>
+              <Text className="brand-subtitle">本地上下文库</Text>
             </div>
           </Flex>
 
@@ -230,6 +250,7 @@ function VaultWorkbench(): ReactElement {
           <div className="provider-menu">
             <ProviderButton
               active={provider === 'all'}
+              tone="all"
               icon={<AppstoreOutlined />}
               label={mode === 'sessions' ? '全部来源' : '全部资产'}
               count={scopedCount}
@@ -237,6 +258,7 @@ function VaultWorkbench(): ReactElement {
             />
             <ProviderButton
               active={provider === 'codex'}
+              tone="codex"
               icon={<SafetyCertificateOutlined />}
               label="Codex"
               count={
@@ -248,6 +270,7 @@ function VaultWorkbench(): ReactElement {
             />
             <ProviderButton
               active={provider === 'claude-code'}
+              tone="claude"
               icon={<CloudServerOutlined />}
               label="Claude Code"
               count={
@@ -347,16 +370,18 @@ function ProviderButton({
   icon,
   label,
   count,
+  tone,
   onClick
 }: {
   active: boolean;
   icon: ReactElement;
   label: string;
   count: number;
+  tone: 'all' | 'codex' | 'claude';
   onClick: () => void;
 }): ReactElement {
   return (
-    <Button type={active ? 'primary' : 'text'} className="provider-button" icon={icon} onClick={onClick}>
+    <Button type={active ? 'primary' : 'text'} className={`provider-button ${tone}`} icon={icon} onClick={onClick}>
       <span>{label}</span>
       <Text className="provider-count">{count}</Text>
     </Button>
@@ -402,7 +427,7 @@ function SessionList({
                   {session.cwd ?? session.sourcePath}
                 </Text>
                 <Space size={6} wrap>
-                  <Tag>{providerLabel[session.provider]}</Tag>
+                  <ProviderTag provider={session.provider} />
                   <Tag>{session.messages.length} 条消息</Tag>
                   <Tag>{session.updatedAt ? formatDate(session.updatedAt) : '未知时间'}</Tag>
                 </Space>
@@ -438,7 +463,7 @@ function AssetList({
             title={<Text ellipsis>{asset.relativePath}</Text>}
             description={
               <Space size={6} wrap>
-                <Tag>{providerLabel[asset.provider]}</Tag>
+                <ProviderTag provider={asset.provider} />
                 <Tag>{assetKindLabel[asset.kind]}</Tag>
                 <Tag>{formatBytes(asset.byteSize)}</Tag>
               </Space>
@@ -463,7 +488,7 @@ function SessionDetail({
     <Flex vertical gap={22}>
       <Flex justify="space-between" align="flex-start" gap={24}>
         <div>
-          <Tag color={session.provider === 'codex' ? 'green' : 'orange'}>{providerLabel[session.provider]}</Tag>
+          <ProviderTag provider={session.provider} />
           <Title level={2} className="detail-title">
             {session.title}
           </Title>
@@ -479,10 +504,10 @@ function SessionDetail({
       </Flex>
 
       <div className="metric-grid">
-        <Statistic title="项目" value={session.cwd ?? '未知'} prefix={<FolderOpenOutlined />} />
-        <Statistic title="分支" value={session.gitBranch ?? '未捕获'} prefix={<CodeOutlined />} />
-        <Statistic title="更新" value={session.updatedAt ? formatDate(session.updatedAt) : '未知'} prefix={<HistoryOutlined />} />
-        <Statistic title="消息" value={session.messages.length} prefix={<FileSearchOutlined />} />
+        <Metric label="项目" value={session.cwd ?? '未知'} icon={<FolderOpenOutlined />} />
+        <Metric label="分支" value={session.gitBranch ?? '未捕获'} icon={<CodeOutlined />} />
+        <Metric label="更新" value={session.updatedAt ? formatDate(session.updatedAt) : '未知'} icon={<HistoryOutlined />} />
+        <Metric label="消息" value={`${session.messages.length} 条`} icon={<FileSearchOutlined />} />
       </div>
 
       <PackResult state={packState} />
@@ -490,14 +515,12 @@ function SessionDetail({
       <section className="content-section">
         <Flex justify="space-between" align="center">
           <Title level={4}>最近上下文</Title>
-          <Text type="secondary">展示最后 6 条消息</Text>
+          <Text type="secondary">末尾 6 条</Text>
         </Flex>
         <div className="message-stack">
           {session.messages.slice(-6).map((message, index) => (
             <div key={`${message.timestamp}-${index}`} className="message-row">
-              <Tag color={message.role === 'user' ? 'blue' : message.role === 'assistant' ? 'green' : 'default'}>
-                {message.role}
-              </Tag>
+              <RoleTag role={message.role} />
               <Paragraph ellipsis={{ rows: 4, expandable: true, symbol: '展开' }}>{message.content}</Paragraph>
             </div>
           ))}
@@ -524,9 +547,9 @@ function EnvironmentDetail({
     <Flex vertical gap={22}>
       <Flex justify="space-between" align="flex-start" gap={24}>
         <div>
-          <Tag color="green">环境迁移包</Tag>
+          <Tag className="tone-tag vault">迁移边界</Tag>
           <Title level={2} className="detail-title">
-            安全迁移 skills、agents、prompts 和配置。
+            打包 skills、agents、prompts 与配置，避开登录态。
           </Title>
         </div>
         <Button
@@ -540,10 +563,10 @@ function EnvironmentDetail({
       </Flex>
 
       <div className="metric-grid">
-        <Statistic title="资产" value={assets.length} prefix={<AppstoreOutlined />} />
-        <Statistic title="配置" value={kinds.settings ?? 0} prefix={<SettingOutlined />} />
-        <Statistic title="Skills" value={kinds.skill ?? 0} prefix={<ToolOutlined />} />
-        <Statistic title="登录态" value="不导出" prefix={<SafetyCertificateOutlined />} />
+        <Metric label="资产" value={`${assets.length} 个`} icon={<AppstoreOutlined />} />
+        <Metric label="配置" value={`${kinds.settings ?? 0} 个`} icon={<SettingOutlined />} />
+        <Metric label="Skills" value={`${kinds.skill ?? 0} 个`} icon={<ToolOutlined />} />
+        <Metric label="登录态" value="不导出" icon={<SafetyCertificateOutlined />} />
       </div>
 
       <PackResult state={packState} />
@@ -604,6 +627,28 @@ function EmptyState({ mode, onScan }: { mode: ViewMode; onScan: () => void }): R
 
 function ProviderAvatar({ provider }: { provider: AgentProvider }): ReactElement {
   return <div className={`provider-avatar ${provider}`}>{provider === 'codex' ? <SafetyCertificateOutlined /> : <CloudServerOutlined />}</div>;
+}
+
+function ProviderTag({ provider }: { provider: AgentProvider }): ReactElement {
+  return <Tag className={`tone-tag ${provider}`}>{providerLabel[provider]}</Tag>;
+}
+
+function RoleTag({ role }: { role: string }): ReactElement {
+  return <Tag className={`role-tag ${role}`}>{roleLabel[role] ?? role}</Tag>;
+}
+
+function Metric({ label, value, icon }: { label: string; value: string; icon: ReactElement }): ReactElement {
+  return (
+    <div className="metric-cell">
+      <Flex align="center" gap={8} className="metric-label">
+        <span className="metric-icon">{icon}</span>
+        <Text type="secondary">{label}</Text>
+      </Flex>
+      <Text strong ellipsis title={value} className="metric-value">
+        {value}
+      </Text>
+    </div>
+  );
 }
 
 function Info({ label, value }: { label: string; value: string }): ReactElement {

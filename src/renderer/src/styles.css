@@ -1,6 +1,22 @@
 :root {
   color-scheme: light;
-  background: #f3f5f0;
+  --ink: #111827;
+  --muted: #657180;
+  --canvas: #eef3f8;
+  --surface: #f8fafc;
+  --surface-2: #e9eff5;
+  --line: #d5dde8;
+  --sider: #20252c;
+  --sider-soft: #2a3038;
+  --sider-line: rgba(226, 232, 240, 0.12);
+  --primary: #b85a3a;
+  --primary-strong: #93462c;
+  --codex: #315f9f;
+  --claude: #9f6640;
+  --safe: #16845d;
+  --amber: #a86b12;
+  --danger: #c7382f;
+  background: var(--canvas);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
@@ -14,7 +30,8 @@ body {
   min-width: 1040px;
   min-height: 680px;
   overflow: hidden;
-  background: #f3f5f0;
+  background: var(--canvas);
+  text-rendering: geometricPrecision;
 }
 
 .vault-shell {
@@ -25,7 +42,12 @@ body {
 .vault-sider {
   position: relative;
   padding-top: 28px;
-  color: #f7f8f0;
+  color: #f8fafc;
+  background:
+    linear-gradient(180deg, #252b33 0%, var(--sider) 42%, #1d2229 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
 }
 
 .window-dots {
@@ -63,10 +85,13 @@ body {
   width: 46px;
   height: 46px;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 8px;
-  background: #2f6f4e;
+  border-radius: 6px;
+  background: var(--primary);
   color: #ffffff;
   font-size: 23px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 12px 24px rgba(9, 14, 20, 0.18);
 }
 
 .brand-title.ant-typography {
@@ -77,21 +102,22 @@ body {
 }
 
 .brand-subtitle {
-  color: rgba(247, 248, 240, 0.62);
+  color: rgba(248, 250, 252, 0.62);
 }
 
 .vault-sider .ant-segmented {
   padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sider-line);
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .vault-sider .ant-segmented-item {
-  color: rgba(247, 248, 240, 0.68);
+  color: rgba(248, 250, 252, 0.68);
 }
 
 .vault-sider .ant-segmented-item-selected {
-  color: #20231f;
+  color: var(--ink);
+  box-shadow: 0 8px 22px rgba(5, 8, 12, 0.16);
 }
 
 .provider-menu {
@@ -103,13 +129,15 @@ body {
   display: grid;
   grid-template-columns: 22px 1fr auto;
   width: 100%;
-  height: 44px;
+  height: 40px;
   justify-content: stretch;
+  border-radius: 6px;
   text-align: left;
+  letter-spacing: 0;
 }
 
 .provider-button.ant-btn-text {
-  color: rgba(247, 248, 240, 0.72);
+  color: rgba(248, 250, 252, 0.72);
 }
 
 .provider-button.ant-btn-text:hover {
@@ -117,26 +145,46 @@ body {
   color: #ffffff;
 }
 
+.provider-button.ant-btn-primary {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.provider-button.ant-btn-primary.all {
+  background: #f8fafc;
+  color: var(--ink);
+}
+
+.provider-button.ant-btn-primary.codex {
+  background: var(--codex);
+  color: #ffffff;
+}
+
+.provider-button.ant-btn-primary.claude {
+  background: var(--claude);
+  color: #ffffff;
+}
+
 .provider-count {
   color: inherit;
-  opacity: 0.72;
+  opacity: 0.76;
 }
 
 .sider-stats {
   display: grid;
   gap: 2px;
   margin-top: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.13);
+  border-top: 1px solid var(--sider-line);
 }
 
 .stat-row {
-  min-height: 44px;
+  min-height: 40px;
   padding: 11px 2px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+  border-bottom: 1px solid var(--sider-line);
 }
 
 .stat-row .ant-typography {
-  color: rgba(247, 248, 240, 0.64);
+  color: rgba(248, 250, 252, 0.64);
 }
 
 .stat-row .ant-typography-strong {
@@ -149,53 +197,75 @@ body {
 
 .vault-main {
   display: grid;
-  grid-template-columns: minmax(360px, 470px) minmax(560px, 1fr);
+  grid-template-columns: minmax(390px, 500px) minmax(560px, 1fr);
   min-width: 0;
   height: 100vh;
   overflow: hidden;
+  background: var(--canvas);
 }
 
 .list-pane {
   min-width: 0;
-  border-right: 1px solid #dde3da;
-  background: #edf1ea;
+  border-right: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(49, 95, 159, 0.05), transparent 210px),
+    var(--surface-2);
 }
 
 .list-toolbar {
-  padding: 18px;
-  border-bottom: 1px solid #dde3da;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.list-toolbar .ant-input-affix-wrapper {
+  border-color: #d6e0ea;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: none;
 }
 
 .scan-line {
-  padding: 10px 18px;
+  padding: 9px 16px;
   border-bottom: 1px solid rgba(32, 35, 31, 0.07);
-  color: #6b7168;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .error-alert {
   margin: 14px 18px 0;
+  border-color: rgba(199, 56, 47, 0.22);
+  background: #fff5f2;
 }
 
 .entity-list {
   height: calc(100vh - 113px);
   overflow: auto;
-  padding: 8px;
+  padding: 8px 10px;
 }
 
 .entity-item.ant-list-item {
   align-items: flex-start;
-  margin: 2px 0;
+  margin: 3px 0;
   padding: 12px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 6px;
+  background: transparent;
   cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
 }
 
 .entity-item.ant-list-item:hover,
 .entity-item.ant-list-item.selected {
-  border-color: #d5ded2;
-  background: #ffffff;
+  border-color: #cfd9e6;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.entity-item.ant-list-item.selected {
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 8px 18px rgba(25, 34, 46, 0.055);
 }
 
 .item-description {
@@ -207,17 +277,17 @@ body {
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: 6px;
   color: #ffffff;
   font-size: 17px;
 }
 
 .provider-avatar.codex {
-  background: #2f6f4e;
+  background: var(--codex);
 }
 
 .provider-avatar.claude-code {
-  background: #b34731;
+  background: var(--claude);
 }
 
 .detail-pane {
@@ -225,39 +295,56 @@ body {
   height: 100vh;
   overflow: auto;
   padding: 32px 36px;
-  background: #fbfcf9;
+  background:
+    linear-gradient(90deg, rgba(184, 90, 58, 0.045), transparent 44%),
+    var(--surface);
 }
 
 .detail-title.ant-typography {
   max-width: 820px;
   margin: 12px 0 0;
   line-height: 1.16;
+  letter-spacing: 0;
 }
 
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
-.metric-grid .ant-statistic {
-  min-height: 96px;
-  padding: 14px;
-  border: 1px solid #e4e8df;
-  border-radius: 8px;
-  background: #ffffff;
+.metric-cell {
+  display: grid;
+  align-content: space-between;
+  min-height: 88px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-.metric-grid .ant-statistic-content {
+.metric-label {
+  min-width: 0;
+}
+
+.metric-icon {
+  display: inline-flex;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.metric-value.ant-typography {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 16px;
+  color: var(--ink);
+  font-size: 15px;
 }
 
 .content-section {
   padding-top: 22px;
-  border-top: 1px solid #e1e6dd;
+  border-top: 1px solid var(--line);
 }
 
 .message-stack {
@@ -269,8 +356,8 @@ body {
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
   gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(32, 35, 31, 0.08);
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.08);
 }
 
 .message-row .ant-typography {
@@ -288,9 +375,48 @@ body {
   gap: 6px;
   min-height: 72px;
   padding: 14px;
-  border: 1px solid #e4e8df;
-  border-radius: 8px;
-  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.tone-tag.ant-tag,
+.role-tag.ant-tag {
+  border-radius: 5px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.tone-tag.codex {
+  border-color: rgba(49, 95, 159, 0.22);
+  background: #e9f0fb;
+  color: #244c83;
+}
+
+.tone-tag.claude-code,
+.tone-tag.vault {
+  border-color: rgba(159, 102, 64, 0.24);
+  background: #f8ede6;
+  color: #71482d;
+}
+
+.role-tag.user {
+  border-color: rgba(49, 95, 159, 0.2);
+  background: #edf3fc;
+  color: #274f88;
+}
+
+.role-tag.assistant {
+  border-color: rgba(22, 132, 93, 0.2);
+  background: #e9f5ef;
+  color: #1d654b;
+}
+
+.role-tag.system,
+.role-tag.tool {
+  border-color: rgba(101, 113, 128, 0.22);
+  background: #eef2f6;
+  color: #4d5967;
 }
 
 .path-link.ant-btn {
