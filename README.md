@@ -7,7 +7,7 @@
 
 Agent Vault is a local-first Electron app for keeping AI coding work continuous across account switches, machine moves, and tool changes.
 
-It scans local Codex and Claude Code transcripts, normalizes sessions into one workspace, and builds **Continuation Packs** that let a fresh agent session continue the old work without pretending to be the original account.
+It scans local Codex and Claude Code transcripts, normalizes sessions into one workspace, and builds **Continuation Packs** that let a fresh agent session continue the old work without pretending to be the original account. It can also build **Environment Packs** for moving skills, agents, commands, prompts, hooks, and redacted settings to a new machine.
 
 ## Why
 
@@ -22,6 +22,10 @@ Agent Vault treats local agent history as working state, not disposable chat.
 - Local Claude Code transcript discovery from `~/.claude/projects`
 - Provider-normalized project and session list
 - Secret redaction for common API keys, bearer tokens, and credentials
+- Environment Pack generation for portable AI agent setup:
+  - Codex skills, prompts, hooks, and `config.toml`
+  - Claude Code `CLAUDE.md`, settings, commands, agents, skills, and hooks
+  - Auth caches, tokens, sessions, histories, and machine-local files excluded
 - Continuation Pack generation:
   - `handoff.md`
   - `conversation.md`
@@ -69,6 +73,23 @@ A Continuation Pack is a portable handoff bundle for a specific agent session. I
 Agent Vault does not write into private Codex or Claude account state. It keeps the boundary explicit and recoverable.
 
 See [Continuation Packs](docs/CONTINUATION_PACK.md).
+
+## Environment Packs
+
+An Environment Pack is a portable bundle for restoring your AI agent working setup on another machine.
+
+It is for assets you would normally want to keep across computers:
+
+- skills
+- agents
+- slash-command style prompts
+- hooks
+- global instructions
+- redacted settings
+
+It intentionally excludes account credentials and login state. New machines should re-authenticate Codex, Claude Code, MCP servers, and external integrations explicitly.
+
+See [Environment Packs](docs/ENVIRONMENT_PACK.md).
 
 ## Supported Providers
 

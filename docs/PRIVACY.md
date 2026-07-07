@@ -6,6 +6,8 @@ Agent Vault is local-first.
 
 - Codex local transcripts under `~/.codex/sessions`
 - Claude Code local transcripts under `~/.claude/projects`
+- Portable Codex environment assets such as `~/.codex/config.toml`, `~/.codex/skills`, `~/.codex/prompts`, and `~/.codex/hooks`
+- Portable Claude Code environment assets such as `~/.claude/CLAUDE.md`, `~/.claude/settings.json`, `~/.claude/commands`, `~/.claude/agents`, `~/.claude/skills`, and `~/.claude/hooks`
 - Git status and diffs for recovered project paths
 
 ## What It Does Not Read
@@ -14,6 +16,8 @@ Agent Vault is local-first.
 - Provider auth tokens
 - `~/.codex/auth.json`
 - Claude account credentials
+- Local transcript histories when building Environment Packs
+- Session folders, history files, `.env` files, cookies, credentials, token files, and machine-local settings when building Environment Packs
 - Remote provider APIs
 
 ## What It Writes
@@ -22,6 +26,12 @@ Continuation Packs are written under:
 
 ```text
 ~/Documents/Agent Vault Packs/
+```
+
+Environment Packs are written under:
+
+```text
+~/Documents/Agent Vault Environment Pack/
 ```
 
 Generated packs can contain sensitive project context. Review before sharing or syncing.

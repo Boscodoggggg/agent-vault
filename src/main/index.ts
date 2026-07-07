@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { scanAgentSessions } from '../core/scanner';
 import { captureGitSnapshot } from '../core/gitSnapshot';
 import { writeContinuationPack } from '../core/continuationPack';
+import { scanEnvironmentAssets, writeEnvironmentPack } from '../core/environmentPack';
 import type { AgentSession } from '../core/types';
 
 let mainWindow: BrowserWindow | undefined;
@@ -70,6 +71,15 @@ app.whenReady().then(() => {
     );
     const files = await writeContinuationPack(session, outputDir, { git });
     return { outputDir, files };
+  });
+
+  ipcMain.handle('vault:scan-environment', async () => {
+    return scanEnvironmentAssets();
+  });
+
+  ipcMain.handle('vault:write-environment-pack', async () => {
+    const outputDir = join(app.getPath('documents'), 'Agent Vault Environment Pack');
+    return writeEnvironmentPack({ outputDir });
   });
 
   ipcMain.handle('vault:open-path', async (_, path: string) => {

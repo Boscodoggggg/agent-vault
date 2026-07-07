@@ -6,11 +6,13 @@
 - Codex adapter
 - Claude Code adapter
 - Continuation Pack generation
+- Environment Pack generation for skills, agents, commands, prompts, hooks, and redacted settings
 
 ## 0.2
 
 - Encrypted local vault index
 - Pack import flow
+- Environment Pack restore preview
 - Path remapping for moved repositories
 - Cursor or Cline adapter
 

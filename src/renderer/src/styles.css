@@ -85,6 +85,37 @@ button {
   font-size: 12px;
 }
 
+.mode-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  gap: 7px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(247, 248, 240, 0.66);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mode-nav button:hover,
+.mode-nav button.active {
+  background: #f7f8f0;
+  color: #20231f;
+}
+
 .source-nav {
   display: grid;
   gap: 6px;
@@ -391,6 +422,22 @@ button {
 .conversation-preview > div {
   display: grid;
   gap: 10px;
+}
+
+.asset-detail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.restore-boundary {
+  padding: 16px 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.restore-boundary p {
+  max-width: 720px;
+  margin: 0;
 }
 
 .message {
