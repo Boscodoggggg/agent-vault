@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible problem
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Agent Vault version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - Codex
+        - Claude Code
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use synthetic data. Do not paste real transcripts.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true

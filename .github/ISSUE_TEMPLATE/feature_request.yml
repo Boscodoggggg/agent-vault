@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a provider, workflow, or recovery improvement
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Provider adapter
+        - Continuation Pack
+        - Desktop app
+        - Sync
+        - Security or privacy
+        - Other
+    validations:
+      required: true
